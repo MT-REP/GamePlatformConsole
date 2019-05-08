@@ -675,22 +675,33 @@ int CGamePlatformDlg::PCAR2_DataProcess()
 	//TRACE("%7.2f|%7.2f|%7.2f|%7.2f|%7.2f\r\n", ConnectToController.m_sDataFromMainControlToDof.DOFs[0], ConnectToController.m_sDataFromMainControlToDof.DOFs[1], ConnectToController.m_sDataFromMainControlToDof.DOFs[2], sharedData->mLocalAcceleration[VEC_X], sharedData->mLocalAcceleration[VEC_Z]);
 	if ((S_CMD_RUN == ConnectToController.m_sDataFromMainControlToDof.nCmd)&&((dof_neutral == ConnectToController.m_sReturnedDataFromDOF.nDOFStatus)||(dof_working == ConnectToController.m_sReturnedDataFromDOF.nDOFStatus)))
 	{
-		ConnectToController.m_sDataFromMainControlToDof.DOFs[0] = (float)(SpecialFunctions.firstLag(ConnectToController.m_sDataFromMainControlToDof.DOFs[0], (preSharedDataOrientation[VEC_X] / 3.14159f*180.0f*m_sConfigParameterList.fK_Pitch	\
-			- preSharedDataLocalAcc[VEC_Z] * m_sConfigParameterList.fK1_Surge), 0.98f));
-		if (ConnectToController.m_sDataFromMainControlToDof.DOFs[0] < -3.0f)
+		for (int i = 0; i < 3; i++)
 		{
-			ConnectToController.m_sDataFromMainControlToDof.DOFs[0] = -3.0f;
+			ConnectToController.m_sDataFromMainControlToDof.DOFs[i] = 0.0f;
+			ConnectToController.m_sDataFromMainControlToDof.DOFs[i + 3] = 0.0f;
+			ConnectToController.m_sDataFromMainControlToDof.Vxyz[i] = 0.0f;
+			ConnectToController.m_sDataFromMainControlToDof.Axyz[i] = 0.0f;
+			preSharedDataOrientation[i] = 0.0f;
+			preSharedDataLocalAcc[i] = 0.0f;
 		}
-		else if (ConnectToController.m_sDataFromMainControlToDof.DOFs[0] > 5.0f)
-		{
-			ConnectToController.m_sDataFromMainControlToDof.DOFs[0] = 5.0f;
-		}
+		preSharedDataRpm = 0.0f;
+		preSharedDataSpeed = 0.0f;
+		//ConnectToController.m_sDataFromMainControlToDof.DOFs[0] = (float)(SpecialFunctions.firstLag(ConnectToController.m_sDataFromMainControlToDof.DOFs[0], (preSharedDataOrientation[VEC_X] / 3.14159f*180.0f*m_sConfigParameterList.fK_Pitch	\
+		//	- preSharedDataLocalAcc[VEC_Z] * m_sConfigParameterList.fK1_Surge), 0.98f));
+		//if (ConnectToController.m_sDataFromMainControlToDof.DOFs[0] < -3.0f)
+		//{
+		//	ConnectToController.m_sDataFromMainControlToDof.DOFs[0] = -3.0f;
+		//}
+		//else if (ConnectToController.m_sDataFromMainControlToDof.DOFs[0] > 5.0f)
+		//{
+		//	ConnectToController.m_sDataFromMainControlToDof.DOFs[0] = 5.0f;
+		//}
 
-		ConnectToController.m_sDataFromMainControlToDof.DOFs[1] = (float)(SpecialFunctions.firstLag(ConnectToController.m_sDataFromMainControlToDof.DOFs[1], (preSharedDataOrientation[VEC_Z] / 3.14159f*180.0f*m_sConfigParameterList.fK_Roll	\
-			+ preSharedDataLocalAcc[VEC_X] * m_sConfigParameterList.fK1_Sway), 0.98f));
+		//ConnectToController.m_sDataFromMainControlToDof.DOFs[1] = (float)(SpecialFunctions.firstLag(ConnectToController.m_sDataFromMainControlToDof.DOFs[1], (preSharedDataOrientation[VEC_Z] / 3.14159f*180.0f*m_sConfigParameterList.fK_Roll	\
+		//	+ preSharedDataLocalAcc[VEC_X] * m_sConfigParameterList.fK1_Sway), 0.98f));
 
-		ConnectToController.m_sDataFromMainControlToDof.Vxyz[0] = preSharedDataRpm / 1000.0f;	//发动机转速Revolutions per minute,仪表显示为0.0~8.0*1000
-		ConnectToController.m_sDataFromMainControlToDof.Vxyz[1] = preSharedDataSpeed*60.0f*60.0f / 1000.0f;	//时速单位为Metres per-second，仪表显示为Km/H
+		//ConnectToController.m_sDataFromMainControlToDof.Vxyz[0] = preSharedDataRpm / 1000.0f;	//发动机转速Revolutions per minute,仪表显示为0.0~8.0*1000
+		//ConnectToController.m_sDataFromMainControlToDof.Vxyz[1] = preSharedDataSpeed*60.0f*60.0f / 1000.0f;	//时速单位为Metres per-second，仪表显示为Km/H
 	}
 	else
 	{
@@ -1505,32 +1516,33 @@ void CALLBACK TimeProc(UINT uTimerID, UINT uMsg, DWORD_PTR dwUser, DWORD_PTR dw1
 		}
 		else if(0 == _tcscmp(pGamePlatformDlg->m_sConfigParameterList.tcaGameName, TEXT("PCAR2")))
 		{
-			if ((true == pGamePlatformDlg->Pcar2IsStartUp()) && (false==pGamePlatformDlg->m_Pcar2RunStatus))
-			{
-				Sleep(10000);
-				pGamePlatformDlg->m_GameStartUpReturnValue = (HINSTANCE)0;
-				pGamePlatformDlg->m_Pcar2RunStatus = true;
-				pGamePlatformDlg->Pcar2SharedMemoryInit();
-			}
-			else if ((false == pGamePlatformDlg->Pcar2IsStartUp()) && (true == pGamePlatformDlg->m_Pcar2RunStatus))
-			{
-				pGamePlatformDlg->m_GameStartUpReturnValue = (HINSTANCE)0;
-				pGamePlatformDlg->m_Pcar2RunStatus = false;
-			}
-			else if ((false == pGamePlatformDlg->Pcar2IsStartUp()) && (false == pGamePlatformDlg->m_Pcar2RunStatus) \
-				&& (pGamePlatformDlg->m_GameStartUpReturnValue <= (HINSTANCE)32) && (S_CMD_GAMESTARTUP==pGamePlatformDlg->ConnectToController.m_sDataFromMainControlToDof.nCmd))
-			{
-				/*pGamePlatformDlg->m_GameStartUpReturnValue = ShellExecute(0, TEXT("open"), pGamePlatformDlg->m_sConfigParameterList.tcaGameExeFilePath, TEXT(""), TEXT(""), SW_SHOWMINIMIZED);
-				if (pGamePlatformDlg->m_GameStartUpReturnValue <= (HINSTANCE)32)
-				{
-					AfxMessageBox(TEXT("Game fail to open!\r\nPlease Check!"));
-					exit(-1);
-				}*/
-			}
-			if (pGamePlatformDlg->m_Pcar2RunStatus == true)
-			{
-				pGamePlatformDlg->PCAR2_DataProcess();
-			}
+			//if ((true == pGamePlatformDlg->Pcar2IsStartUp()) && (false==pGamePlatformDlg->m_Pcar2RunStatus))
+			//{
+			//	Sleep(10000);
+			//	pGamePlatformDlg->m_GameStartUpReturnValue = (HINSTANCE)0;
+			//	pGamePlatformDlg->m_Pcar2RunStatus = true;
+			//	pGamePlatformDlg->Pcar2SharedMemoryInit();
+			//}
+			//else if ((false == pGamePlatformDlg->Pcar2IsStartUp()) && (true == pGamePlatformDlg->m_Pcar2RunStatus))
+			//{
+			//	pGamePlatformDlg->m_GameStartUpReturnValue = (HINSTANCE)0;
+			//	pGamePlatformDlg->m_Pcar2RunStatus = false;
+			//}
+			//else if ((false == pGamePlatformDlg->Pcar2IsStartUp()) && (false == pGamePlatformDlg->m_Pcar2RunStatus) \
+			//	&& (pGamePlatformDlg->m_GameStartUpReturnValue <= (HINSTANCE)32) && (S_CMD_GAMESTARTUP==pGamePlatformDlg->ConnectToController.m_sDataFromMainControlToDof.nCmd))
+			//{
+			//	/*pGamePlatformDlg->m_GameStartUpReturnValue = ShellExecute(0, TEXT("open"), pGamePlatformDlg->m_sConfigParameterList.tcaGameExeFilePath, TEXT(""), TEXT(""), SW_SHOWMINIMIZED);
+			//	if (pGamePlatformDlg->m_GameStartUpReturnValue <= (HINSTANCE)32)
+			//	{
+			//		AfxMessageBox(TEXT("Game fail to open!\r\nPlease Check!"));
+			//		exit(-1);
+			//	}*/
+			//}
+			//if (pGamePlatformDlg->m_Pcar2RunStatus == true)
+			//{
+			//	pGamePlatformDlg->PCAR2_DataProcess();
+			//}
+			pGamePlatformDlg->PCAR2_DataProcess();
 		}
 	}
 	else
